@@ -1,6 +1,6 @@
 require "refile"
 require "refile/mini_magick/version"
-require "mini_magick"
+require "skeptick/core"
 
 module Refile
   # Processes images via MiniMagick, resizing cropping and padding them.
@@ -8,6 +8,16 @@ module Refile
     # @param [Symbol] method        The method to invoke on {#call}
     def initialize(method)
       @method = method
+    end
+
+    # This would normally be named `convert` and included, this avoids collision
+    # with existing method `convert` that Refile depends on.
+    def skeptick_convert(*args, &block)
+      Skeptick::Convert.new(self, *args, &block)
+    end
+
+    def path_for_format(path, format = nil)
+      format ? path.sub(/\.[^.]+\z/, ".#{format.to_s.downcase}") : path
     end
 
     # Changes the image encoding format to the given format
@@ -18,7 +28,9 @@ module Refile
     # @yield [MiniMagick::Tool::Mogrify, MiniMagick::Tool::Convert]
     # @return [void]
     def convert(img, format, &block)
-      img.format(format.to_s.downcase, nil, &block)
+      path = img.is_a?(Skeptick::Convert) ? img.shellwords[1] : img
+      dest_path = path_for_format(path, format)
+      skeptick_convert(img, to: dest_path)
     end
 
     # Resize the image to fit within the specified dimensions while retaining
@@ -32,10 +44,11 @@ module Refile
     # @param [#to_s] height               the maximum height
     # @yield [MiniMagick::Tool::Mogrify, MiniMagick::Tool::Convert]
     # @return [void]
-    def limit(img, width, height)
-      img.combine_options do |cmd|
-        yield cmd if block_given?
-        cmd.resize "#{width}x#{height}>"
+    def limit(img, width, height, &block)
+      img = skeptick_convert(img, &block) if block_given?
+
+      skeptick_convert(img) do
+        set :resize, "#{width}x#{height}>"
       end
     end
 
@@ -49,10 +62,11 @@ module Refile
     # @param [#to_s] height               the height to fit into
     # @yield [MiniMagick::Tool::Mogrify, MiniMagick::Tool::Convert]
     # @return [void]
-    def fit(img, width, height)
-      img.combine_options do |cmd|
-        yield cmd if block_given?
-        cmd.resize "#{width}x#{height}"
+    def fit(img, width, height, &block)
+      img = skeptick_convert(img, &block) if block_given?
+
+      skeptick_convert(img) do
+        set :resize, "#{width}x#{height}"
       end
     end
 
@@ -72,14 +86,14 @@ module Refile
     # @yield [MiniMagick::Tool::Mogrify, MiniMagick::Tool::Convert]
     # @return [void]
     # @see http://www.imagemagick.org/script/command-line-options.php#gravity
-    def fill(img, width, height, gravity = "Center")
+    def fill(img, width, height, gravity = "Center", &block)
       # We use `convert` to work around GraphicsMagick's absence of "gravity"
-      ::MiniMagick::Tool::Convert.new do |cmd|
-        yield cmd if block_given?
-        cmd.resize "#{width}x#{height}^"
-        cmd.gravity gravity
-        cmd.extent "#{width}x#{height}"
-        cmd.merge! [img.path, img.path]
+      img = skeptick_convert(img, &block) if block_given?
+
+      skeptick_convert(img) do
+        set :resize, "#{width}x#{height}^"
+        set :gravity, gravity
+        set :extent, "#{width}x#{height}"
       end
     end
 
@@ -104,19 +118,16 @@ module Refile
     # @return [void]
     # @see http://www.imagemagick.org/script/color.php
     # @see http://www.imagemagick.org/script/command-line-options.php#gravity
-    def pad(img, width, height, background = "transparent", gravity = "Center")
+    def pad(img, width, height, background = "transparent", gravity = "Center", &block)
       # We use `convert` to work around GraphicsMagick's absence of "gravity"
-      ::MiniMagick::Tool::Convert.new do |cmd|
-        yield cmd if block_given?
-        cmd.resize "#{width}x#{height}"
-        if background == "transparent"
-          cmd.background "rgba(255, 255, 255, 0.0)"
-        else
-          cmd.background background
-        end
-        cmd.gravity gravity
-        cmd.extent "#{width}x#{height}"
-        cmd.merge! [img.path, img.path]
+      img = skeptick_convert(img, &block) if block_given?
+
+      skeptick_convert(img) do
+        set :resize, "#{width}x#{height}"
+        set :background,
+          background == 'transparent' ? 'rgba(255, 255, 255, 0.0)' : background
+        set :gravity, gravity
+        set :extent, "#{width}x#{height}"
       end
     end
 
@@ -130,11 +141,15 @@ module Refile
     # @param [String] format        the file format to convert to
     # @return [File]                the processed file
     def call(file, *args, format: nil, &block)
-      img = ::MiniMagick::Image.new(file.path)
-      img.format(format.to_s.downcase, nil) if format
-      send(@method, img, *args, &block)
+      img = skeptick_convert(file.path, to: file.path)
+      cmd = send(@method, img, *args, &block)
 
-      ::File.open(img.path, "rb")
+      if cmd.shellwords.last == Skeptick::Convert::DEFAULT_OUTPUT
+        cmd = convert(cmd, format)
+      end
+      cmd.run
+
+      ::File.open(cmd.shellwords.last, 'rb')
     end
   end
 end

@@ -18,5 +18,5 @@ Gem::Specification.new do |spec|
   spec.require_paths = ["lib"]
 
   spec.add_dependency "refile", "~> 0.5"
-  spec.add_dependency "mini_magick", "~> 4.0"
+  spec.add_dependency "skeptick", "~> 0.2"
 end
