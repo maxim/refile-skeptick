@@ -1,6 +1,6 @@
 source 'https://rubygems.org'
 
-# Specify your gem's dependencies in refile-mini_magick.gemspec
+# Specify your gem's dependencies in refile-skeptick.gemspec
 gemspec
 
 gem "refile", github: "refile/refile"

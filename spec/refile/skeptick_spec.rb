@@ -1,8 +1,8 @@
 require "pry"
-require "refile/mini_magick"
+require "refile/skeptick"
 require "phashion"
 
-describe Refile::MiniMagick do
+describe Refile::Skeptick do
   let(:portrait) { Tempfile.new(["portrait", ".jpg"]) }
   let(:landscape) { Tempfile.new(["landscape", ".jpg"]) }
 
@@ -45,7 +45,7 @@ describe Refile::MiniMagick do
 
   describe "#convert" do
     it "changes the image format" do
-      file = Refile::MiniMagick.new(:convert).call(portrait, "png")
+      file = Refile::Skeptick.new(:convert).call(portrait, "png")
       expect(`identify #{file.path}`).to match(/PNG/)
     end
 
@@ -57,17 +57,17 @@ describe Refile::MiniMagick do
 
   describe "#limit" do
     it "resizes the image up to a given limit" do
-      file = Refile::MiniMagick.new(:limit).call(portrait, "400", "400")
+      file = Refile::Skeptick.new(:limit).call(portrait, "400", "400")
       expect(file.path).to have_dimensions('300x400')
     end
 
     it "does not resize the image if it is smaller than the limit" do
-      file = Refile::MiniMagick.new(:limit).call(portrait, "1000", "1000")
+      file = Refile::Skeptick.new(:limit).call(portrait, "1000", "1000")
       expect(file.path).to have_dimensions('600x800')
     end
 
     it "produces correct image" do
-      file = Refile::MiniMagick.new(:limit).call(portrait, "400", "400")
+      file = Refile::Skeptick.new(:limit).call(portrait, "400", "400")
       expect(file.path).to be_similar_to(fixture_path("limit.jpg"))
     end
 
@@ -79,17 +79,17 @@ describe Refile::MiniMagick do
 
   describe "#fit" do
     it "resizes the image to fit given dimensions" do
-      file = Refile::MiniMagick.new(:fit).call(portrait, "400", "400")
+      file = Refile::Skeptick.new(:fit).call(portrait, "400", "400")
       expect(file.path).to have_dimensions('300x400')
     end
 
     it "enlarges image if it is smaller than given dimensions" do
-      file = Refile::MiniMagick.new(:fit).call(portrait, "1000", "1000")
+      file = Refile::Skeptick.new(:fit).call(portrait, "1000", "1000")
       expect(file.path).to have_dimensions('750x1000')
     end
 
     it "produces correct image" do
-      file = Refile::MiniMagick.new(:fit).call(portrait, "400", "400")
+      file = Refile::Skeptick.new(:fit).call(portrait, "400", "400")
       expect(file.path).to be_similar_to(fixture_path("fit.jpg"))
     end
 
@@ -101,17 +101,17 @@ describe Refile::MiniMagick do
 
   describe "#fill" do
     it "resizes and crops the image to fill out the given dimensions" do
-      file = Refile::MiniMagick.new(:fill).call(portrait, "400", "400")
+      file = Refile::Skeptick.new(:fill).call(portrait, "400", "400")
       expect(file.path).to have_dimensions('400x400')
     end
 
     it "enlarges image and crops it if it is smaller than given dimensions" do
-      file = Refile::MiniMagick.new(:fill).call(portrait, "1000", "1000")
+      file = Refile::Skeptick.new(:fill).call(portrait, "1000", "1000")
       expect(file.path).to have_dimensions('1000x1000')
     end
 
     it "produces correct image" do
-      file = Refile::MiniMagick.new(:fill).call(portrait, "400", "400")
+      file = Refile::Skeptick.new(:fill).call(portrait, "400", "400")
       expect(file.path).to be_similar_to(fixture_path("fill.jpg"))
     end
 
@@ -123,22 +123,22 @@ describe Refile::MiniMagick do
 
   describe "#pad" do
     it "resizes and fills out the remaining space to fill out the given dimensions" do
-      file = Refile::MiniMagick.new(:pad).call(portrait, "400", "400", "red")
+      file = Refile::Skeptick.new(:pad).call(portrait, "400", "400", "red")
       expect(file.path).to have_dimensions('400x400')
     end
 
     it "enlarges image and fills out the remaining space to fill out the given dimensions" do
-      file = Refile::MiniMagick.new(:pad).call(portrait, "1000", "1000", "red")
+      file = Refile::Skeptick.new(:pad).call(portrait, "1000", "1000", "red")
       expect(file.path).to have_dimensions('1000x1000')
     end
 
     it "produces correct image" do
-      file = Refile::MiniMagick.new(:pad).call(portrait, "400", "400", "red", format: "png")
+      file = Refile::Skeptick.new(:pad).call(portrait, "400", "400", "red", format: "png")
       expect(file.path).to be_similar_to(fixture_path("pad.jpg"))
     end
 
     it "produces correct image when enlarging" do
-      file = Refile::MiniMagick.new(:pad).call(landscape, "1000", "1000", "green")
+      file = Refile::Skeptick.new(:pad).call(landscape, "1000", "1000", "green")
       expect(file.path).to be_similar_to(fixture_path("pad-large.jpg"))
     end
 

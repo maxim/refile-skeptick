@@ -1,10 +1,10 @@
 require "refile"
-require "refile/mini_magick/version"
+require "refile/skeptick/version"
 require "skeptick/core"
 
 module Refile
-  # Processes images via MiniMagick, resizing cropping and padding them.
-  class MiniMagick
+  # Processes images via Skeptick, resizing cropping and padding them.
+  class Skeptick
     # @param [Symbol] method        The method to invoke on {#call}
     def initialize(method)
       @method = method
@@ -13,7 +13,7 @@ module Refile
     # This would normally be named `convert` and included, this avoids collision
     # with existing method `convert` that Refile depends on.
     def skeptick_convert(*args, &block)
-      Skeptick::Convert.new(self, *args, &block)
+      ::Skeptick::Convert.new(self, *args, &block)
     end
 
     def path_for_format(path, format = nil)
@@ -23,12 +23,12 @@ module Refile
     # Changes the image encoding format to the given format
     #
     # @see http://www.imagemagick.org/script/command-line-options.php#format
-    # @param [MiniMagick::Image] img      the image to convert
+    # @param [Skeptick::Convert] img      the image to convert
     # @param [String] format              the format to convert to
     # @yield [MiniMagick::Tool::Mogrify, MiniMagick::Tool::Convert]
     # @return [void]
     def convert(img, format, &block)
-      path = img.is_a?(Skeptick::Convert) ? img.shellwords[1] : img
+      path = img.is_a?(::Skeptick::Convert) ? img.shellwords[1] : img
       dest_path = path_for_format(path, format)
       skeptick_convert(img, to: dest_path)
     end
@@ -39,7 +39,7 @@ module Refile
     # narrower than specified in either dimension but will not be larger than
     # the specified values.
     #
-    # @param [MiniMagick::Image] img      the image to convert
+    # @param [Skeptick::Convert] img      the image to convert
     # @param [#to_s] width                the maximum width
     # @param [#to_s] height               the maximum height
     # @yield [MiniMagick::Tool::Mogrify, MiniMagick::Tool::Convert]
@@ -57,7 +57,7 @@ module Refile
     # specified in the smaller dimension but will not be larger than the
     # specified values.
     #
-    # @param [MiniMagick::Image] img      the image to convert
+    # @param [Skeptick::Convert] img      the image to convert
     # @param [#to_s] width                the width to fit into
     # @param [#to_s] height               the height to fit into
     # @yield [MiniMagick::Tool::Mogrify, MiniMagick::Tool::Convert]
@@ -79,7 +79,7 @@ module Refile
     # By default, the center part of the image is kept, and the remainder
     # cropped off, but this can be changed via the `gravity` option.
     #
-    # @param [MiniMagick::Image] img      the image to convert
+    # @param [Skeptick::Convert] img      the image to convert
     # @param [#to_s] width                the width to fill out
     # @param [#to_s] height               the height to fill out
     # @param [String] gravity             which part of the image to focus on
@@ -109,7 +109,7 @@ module Refile
     # By default, the image will be placed in the center but this can be
     # changed via the `gravity` option.
     #
-    # @param [MiniMagick::image] img      the image to convert
+    # @param [Skeptick::Convert] img      the image to convert
     # @param [#to_s] width                the width to fill out
     # @param [#to_s] height               the height to fill out
     # @param [string] background          the color to use as a background
@@ -144,7 +144,7 @@ module Refile
       img = skeptick_convert(file.path, to: file.path)
       cmd = send(@method, img, *args, &block)
 
-      if cmd.shellwords.last == Skeptick::Convert::DEFAULT_OUTPUT
+      if cmd.shellwords.last == ::Skeptick::Convert::DEFAULT_OUTPUT
         cmd = convert(cmd, format)
       end
       cmd.run
@@ -155,5 +155,5 @@ module Refile
 end
 
 [:fill, :fit, :limit, :pad, :convert].each do |name|
-  Refile.processor(name, Refile::MiniMagick.new(name))
+  Refile.processor(name, Refile::Skeptick.new(name))
 end
